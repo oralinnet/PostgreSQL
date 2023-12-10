@@ -1,7 +1,7 @@
 ### Postgresql Parameters 
 
 - listen_addresses
-```t
+```
 In PostgreSQL, the listen_addresses parameter is used to specify the network interfaces on which the
 database server will listen for incoming connections. This parameter is defined in the __postgresql.conf__ configuration file.
 __Default Value:__ By default, PostgreSQL is configured to listen on all available network interfaces,
