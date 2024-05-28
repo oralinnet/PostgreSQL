@@ -50,7 +50,9 @@ join user on user.id=photo.user_id;
 ```
 
 - Delete data from primary table By using on delete cascade 
+```t
 In this example when you delete data from primary table it is also delete value from references tables
+```
 ```sql
 DROP TABLE photos;
 
@@ -79,7 +81,9 @@ WHERE id = 1;
 SELECT * FROM photos;
 ```
 - Delete data from primary table by using on delete set null
+```t
 In this example when you delete data from primary table it is set null value in reference tables value. 
+```
 
 ```sql
 DROP TABLE photos;
