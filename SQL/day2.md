@@ -49,4 +49,56 @@ select name,url,user_id from photo
 join user on user.id=photo.user_id;
 ```
 
+- Delete data from primary table By using on delete cascade 
+In this example when you delete data from primary table it is also delete value from references tables
+```sql
+DROP TABLE photos;
 
+-- This will result in an error
+SELECT * FROM photos;
+
+CREATE TABLE photos (
+  id SERIAL PRIMARY KEY,
+  url VARCHAR(200),
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE
+);
+
+INSERT INTO photos (url, user_id)
+VALUES
+	('http://one.jpg', 4),
+	('http://two.jpg', 1),
+  ('http://25.jpg', 1),
+  ('http://36.jpg', 1),
+  ('http://754.jpg', 2),
+  ('http://35.jpg', 3),
+  ('http://256.jpg', 4);
+
+DELETE FROM users
+WHERE id = 1;
+
+SELECT * FROM photos;
+```
+- Delete data from primary table by using on delete set null
+In this example when you delete data from primary table it is set null value in reference tables value. 
+
+```sql
+DROP TABLE photos;
+
+CREATE TABLE photos (
+  id SERIAL PRIMARY KEY,
+  url VARCHAR(200),
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
+);
+
+INSERT INTO photos (url, user_id)
+VALUES
+  ('http:/one.jpg', 4),
+  ('http:/754.jpg', 2),
+  ('http:/35.jpg', 3),
+  ('http:/256.jpg', 4);
+
+DELETE FROM users
+WHERE id = 4;
+
+SELECT * FROM photos;
+```
