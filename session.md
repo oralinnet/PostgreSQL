@@ -10,9 +10,23 @@ from
 ```
 
 - Terminate connections that have been idle for 15 minutes or longer.
-```sh
+```sql
 SELECT pg_terminate_backend(pid) 
 FROM   pg_stat_activity 
 WHERE  state = 'idle' 
        AND state_change < now() - '15min'::interval; 
+```
+- Find PostgreSQL Queries running longer than 2 Minutes
+```sql
+SELECT pid, now() - pg_stat_activity.query_start AS duration, query 
+FROM pg_stat_activity 
+WHERE (now() - pg_stat_activity.query_start) > interval '2 minutes';
+```
+- Kill session Id 
+```sql
+SELECT pg_terminate_backend(8428);
+
+select pg_terminate_backend(pid) 
+from pg_stat_activity
+where pid = '1344279';
 ```
