@@ -54,8 +54,8 @@ Where some queries look like they’re not going to finish, you can use the pid 
 ---- attempt to gracefully kill a running query process.
 pg_cancel_backend(pid) 
 
-<-- immediately kill the running query process, but potentially have side affects across additional queries running on your database server. The full connection may be 
-reset when running pg_terminate_backend, so other running queries can be affected. Use as a last resort. -->
+--- immediately kill the running query process, but potentially have side affects across additional queries running on your database server. The full connection may be 
+--- reset when running pg_terminate_backend, so other running queries can be affected. Use as a last resort. -->
 
-pg_terminate_backend(pid) will 
+pg_terminate_backend(pid)
 ```
