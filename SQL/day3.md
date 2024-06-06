@@ -35,4 +35,21 @@ from comments as c
 join photos on photos.id=c.photo_id
 join users on users.id=photos.user_id;
 ```
-50
+- join Missing Data 
+```sql
+--- Insert Null Data in photos table 
+insert into photos (url,user_id)
+	values ('https://banana.jpg',null);
+
+-- Count data in photos table 
+select count (*) from photos;
+
+-- join users table with photos 
+select username,url from users
+join photos on users.id=photos.user_id;         -- In this join null values is not showing 
+```
+#### Join Table cheatsheet
+- Inner Join and outer Join 
+![inner and left outer join](image/join1.png)
+- Right Outer join and Full join
+![Right outer and full join](image/join2.png)
