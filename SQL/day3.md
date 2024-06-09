@@ -53,3 +53,38 @@ join photos on users.id=photos.user_id;         -- In this join null values is n
 ![inner and left outer join](image/join1.png)
 - Right Outer join and Full join
 ![Right outer and full join](image/join2.png)
+
+- Example of Table Joinnig 
+```sql
+-- Inner Join 
+SELECT
+	USERNAME,
+	URL
+FROM
+	PHOTOS
+	JOIN USERS ON USERS.ID = PHOTOS.USER_ID;
+
+-- Left Outer Join 
+SELECT
+	USERNAME,
+	URL
+FROM
+	PHOTOS
+	LEFT JOIN USERS ON USERS.ID = PHOTOS.USER_ID;
+
+-- Right Outer Join
+SELECT
+	USERNAME,
+	URL
+FROM
+	PHOTOS
+	RIGHT JOIN USERS ON USERS.ID = PHOTOS.USER_ID;
+
+-- Full Join
+SELECT
+	USERNAME,
+	URL
+FROM
+	PHOTOS
+	FULL JOIN USERS ON USERS.ID = PHOTOS.USER_ID;
+```
