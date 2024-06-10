@@ -88,3 +88,23 @@ FROM
 	PHOTOS
 	FULL JOIN USERS ON USERS.ID = PHOTOS.USER_ID;
 ```
+- Left Join from different table 
+```sql
+-- Left join from photos table 
+SELECT
+	USERNAME,
+	URL
+FROM
+	PHOTOS
+	LEFT JOIN USERS ON USERS.ID = PHOTOS.USER_ID;
+
+-- Left join from users table 
+SELECT
+	USERNAME,
+	URL
+FROM
+	USERS
+	LEFT JOIN PHOTOS ON USERS.ID = PHOTOS.USER_ID;
+
+```
+58
