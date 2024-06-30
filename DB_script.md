@@ -662,4 +662,52 @@ select pg_terminate_backend(pid) from pg_stat_activity where datname='DB_NAME';
 
 ```
 
+### AUDITING & SECURITY
 
+- Find pg_hba.conf file content
+
+```sql
+-- This provides a summary of contents of client authentication config file pg_hba.conf 
+
+select * from pg_hba_file_rules;
+```
+
+- Enable auditing for ddl/dml statement
+
+```sql
+-- Check auditing setting :
+show log_statement;
+
+-- For logging all ddl activites:
+
+alter system set log_statement=ddl;
+select pg_reload_conf();
+
+-- For logging all DDL DML activities:
+alter system set log_statement=mod;
+select pg_reload_conf();
+
+-- For logging all statement( i.e ddl , dml and even select statements)
+alter system set log_statement='all';
+select pg_reload_conf();
+
+```
+
+- Enable audit for log on/log off to postgres
+
+```sql
+-- Enable audit for connection and disconnection to postgres.
+
+select name,setting from pg_settings where name in ('log_disconnections','log_connections');
+
+alter system set log_disconnections=off;
+alter system set log_connections=on;
+select pg_reload_conf();
+
+-- Now all log on and log off will logged in the log file.
+
+<<<<<<<<< cd /Library/PostgreSQL/10/data/log/ >>>>>>>
+2020-07-06 12:51:39.042 IST [10212] LOG: connection received: host=[local]
+2020-07-06 12:51:53.416 IST [10215] LOG: connection received: host=[local]
+2020-07-06 12:51:53.420 IST [10215] LOG: connection authorized: user=postgres database=postgres
+```
