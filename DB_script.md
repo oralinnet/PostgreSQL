@@ -559,3 +559,107 @@ SELECT pg_size_pretty(pg_relation_size('test')) as table_size,(pgstattuple('test
 
 select pg_relation_size('test_x_idx') as index_size, 100-(pgstatindex('test_x_idx')).avg_leaf_density as bloat_ratio;
 ```
+
+### TABLESPACE MANAGEMENT
+
+- View tablespace info in postgres
+
+```sql
+-- VIEW TABLESPACE INFO IN POSTGRES:
+select * from pg_tablespace;
+
+(OR)
+
+postgres=# \db+
+
+(or)
+
+-- For getting size of specific tablespace:
+select pg_size_pretty(pg_tablespace_size('ts_dbaclass'));
+
+
+-- Pre-configured tablespaces:( these are default tablespaces)
+
+Pg_global - > PGDATA/global - > used for cluster wide table and system catalog
+Pg_default - > PGDATA/base directory - > it stores databases and relations
+```
+
+- create/drop/rename tablespace in postgres
+```sql
+-- CREATE TABLESPACE:
+create tablespace ts_postgres location '/Library/PostgreSQL/TEST/TS_POSTGRES';
+
+-- RENAME TABLESPACE:
+alter tablespace ts_postgres rename to ts_dbaclass;
+
+-- DROP TABLESPACE:
+drop tablespace ts_dbaclass;
+
+-- Before dropping tablespace make sure it is emptry
+```
+
+- find/change default tablespace
+```sql
+show default_tablespace;
+
+-- <<<< If output is blank means default is pg_default tablespace>>>>>
+
+--To change the default tablespace at database level:
+
+alter system set default_tablespace=ts_postgres;
+select pg_reload_conf();
+show default_tablespace;
+SELECT name, setting FROM pg_settings where name='default_tablespace';
+
+-- Steps to change default tablespace at session level:
+
+set default_tablespace=ts_postgres;
+
+```
+
+- find/change default temp tablespace
+
+```sql
+-- VIEW DEFAULT TEMP TABLESPACE:
+SELECT name, setting FROM pg_settings where name='temp_tablespaces';
+show temp_tablespaces
+
+-- CHANGE DEFAULT TEMP TABLESPACE
+
+alter system set temp_tablespaces=TS_TEMP;
+select pg_reload_conf();
+show temp_tablespaces;
+SELECT name, setting FROM pg_settings where name='temp_tablespaces';
+
+```
+
+- How to change tablespace owner
+```sql
+alter tablespace ts_postgres owner to dev_admin;
+\db+
+```
+
+- Move table/index to different tablespace
+
+```sql
+-- move table to different tablespace
+alter table TEST8 set tablespace pg_crm;
+
+-- Move index to different tablespace
+
+alter index TEST_ind set tablespace pg_crm;
+
+```
+
+- Move database to new tablespace in postgres
+
+```sql
+alter database prod_crm set tablespace crm_tblspc;
+
+-- Before running this. make sure there are no active connections in the database.
+-- You can kill the existing session using below query.
+select pg_terminate_backend(pid) from pg_stat_activity where datname='DB_NAME';
+
+```
+
+
