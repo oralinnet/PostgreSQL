@@ -367,3 +367,195 @@ select pg_current_wal_insert_lsn(),pg_current_wal_lsn();
 SELECT datname, temp_files, temp_bytes, stats_reset FROM pg_stat_database;
 
 ```
+
+### MAINTENANCE 
+
+- Update statistics of a table using analyze
+
+```sql
+-- Analyze stats for a table testanalyze(schema is public)
+
+analyze testanalyze;
+
+-- For analyzing selected columns for emptab table ( schema is dbatest)
+
+analyze dbatest.emptab (datname,datdba);
+dbaclass=# select relname,reltuples from pg_class where relname in ('testanalyze','emptab');
+select schemaname,relname,analyze_count,last_analyze,last_autoanalyze from pg_stat_user_tables where relname in ('testanalyze','emptab');
+
+---Analyze command with verbose command
+
+analyze verbose dbatest.emptab (datname,datdba);
+
+---Analyze tables in the current schema that the user has access to.
+ analyze ;
+
+-- NOTE: ANALYZE requires only a read lock on the target table, so it can run in parallel with other activity on the table.
+```
+
+- Reorg a table using VACUUM command
+
+```sql
+-- VACUUM - >  REMOVES DEAD ROWS, AND MARK THEM FOR REUSE, BUT IT DOESN’T RETURN THE SPACE TO ORACLE,. IT DOESN'T NEED EXCLUSIVE LOCK ON THE TABLE.
+
+-- vacuum a table:
+vacuum dbatest.emptab;
+
+-- both vacuum and analyze:
+
+vacuum analyze dbatest.emptab;
+
+-- with verbose
+vacuum verbose analyze dbatest.emptab;
+select schemaname,relname,last_vacuum,vacuum_count from pg_stat_user_tables where relname='emptab';
+```
+
+- Reorg a table using VACUUM FULL command
+
+```sql
+-- VACUUM FULL - > JUST LIKE MOVE COMMAND IN ORACLE . IT TAKES MORE TIME, BUT IT RETURNS THE SPACE TO OS BECAUSE OF ITS COMPLEX ALGORITHM. IT also requires additional disk space , which can store the new copy of the table., until the activity is completed. Also it locks the table exclusively, which block all operations on the table .
+
+-- Command to run vacuum full command for table:
+VACUUM FULL dbatest.emptab;
+
+-- DEMO TO CHECK HOW IT RECLAIMS SPACE:
+
+-- Check existing space and delete some data:
+select pg_size_pretty(pg_relation_size('dbatest.emptab'));
+delete from dbatest.emptab where oid=13634;
+DELETE 131072
+
+-- We can observe size is still same:
+
+select pg_size_pretty(pg_relation_size('dbatest.emptab'));
+
+-- Run vacuum full and observe the space usage:
+
+VACUUM FULL dbatest.emptab;
+select pg_size_pretty(pg_relation_size('dbatest.emptab'));
+
+```
+
+- Manage autovacuum process in postgres
+
+```sql
+-- Autovacuum methods automates the executions vacuum,freeze and analyze commands.
+-- Find whether autovacuum is enabled or not:
+select name,setting,short_desc,boot_val,pending_restart from pg_settings where name in ('autovacuum','track_counts');
+
+-- Find other autovacuum related parameter settings
+select name,setting,short_desc,min_val,max_val,enumvals,boot_val,pending_restart from pg_settings where category like 'Autovacuum';
+
+-- Change autovacuum settings:( they need restart)
+alter system set autovacuum_max_workers=10 ;
+
+-- Now restart :
+
+pg_ctl stop
+pg_ctl start
+
+```
+
+- Rebuild indexes using REINDEX
+
+```sql
+-- REINDEX rebuilds an index using the data stored in the index's table, replacing the old copy of the index. There are several scenarios in which to use REINDEX:
+
+--  Rebuild particular index:
+
+REINDEX INDEX TEST_IDX2;
+
+-- Rebuild all indexes on a table:
+REINDEX TABLE TEST;
+
+-- Rebuild all indexes of tables in a schema:
+reindex schema public;
+
+-- Rebuild all indexes in a database :
+reindex database dbaclass;
+
+-- Reindex with verbose option:
+reindex (verbose) table test;
+
+-- Rebuild index without causing lock on the table:( using concurrently option) 
+REINDEX ( verbose) table concurrently test;
+```
+
+- Monitor index creation or rebuild
+
+```sql
+SELECT a.query,p.phase, p.blocks_total,p.blocks_done,p.tuples_total, p.tuples_done FROM pg_stat_progress_create_index p JOIN pg_stat_activity a ON p.pid = a.pid;
+
+(or)
+
+select pid,datname,command,phase,tuples_total,tuples_done,partitions_total,partitions_done from pg_stat_progress_create_index;
+
+```
+
+- Monitor vacuum operation 
+
+```sql
+select * from pg_stat_progress_vacuum;
+
+```
+
+- find and change statistics level of a column
+```sql
+-- Finding statistics level of a column ( orders.orderdate)
+-- statistics level range is 1-10000 ( where 100 means 1 percent,10000 means 100 percent)
+
+SELECT attname as column_name , attstattarget as stats_level FROM pg_attribute WHERE attrelid = (SELECT oid FROM pg_class WHERE relname = 'orders') and attname='orderdate';
+
+-- To change statistics level of a column:
+alter table orders alter column orderdate set statistics 1000;
+```
+
+- Find vaccum settings of tables
+
+```sql
+SELECT n.nspname, c.relname,
+pg_catalog.array_to_string(c.reloptions || array(
+select 'toast.' ||
+x from pg_catalog.unnest(tc.reloptions) x),', ')
+as relopts
+FROM pg_catalog.pg_class c
+LEFT JOIN
+pg_catalog.pg_class tc ON (c.reltoastrelid = tc.oid)
+JOIN
+pg_namespace n ON c.relnamespace = n.oid
+WHERE c.relkind = 'r'
+AND nspname NOT IN ('pg_catalog', 'information_schema');
+
+```
+
+- Modify autovacuum setting of table/index
+
+```sql
+-- Disable autovacuum for a table:
+
+alter table test2 set( autovacuum_enabled = off);
+
+-- Enable autovacuum for a table
+
+alter table test2 set( autovacuum_enabled = on);
+```
+
+- Find last vaccum/analyze details of a table
+
+```sql 
+select * from pg_stat_user_tables where relname='test';
+```
+
+- Find how much bloating a table has
+
+```sql
+-- Create the pgstattuple extension:
+create extension pgstattuple;
+
+-- bloating percentage of the table "test":
+SELECT pg_size_pretty(pg_relation_size('test')) as table_size,(pgstattuple('test')).dead_tuple_percent;
+
+-- bloating percentage of index "test_x_idx":
+
+select pg_relation_size('test_x_idx') as index_size, 100-(pgstatindex('test_x_idx')).avg_leaf_density as bloat_ratio;
+```
