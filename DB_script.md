@@ -711,3 +711,119 @@ select pg_reload_conf();
 2020-07-06 12:51:53.416 IST [10215] LOG: connection received: host=[local]
 2020-07-06 12:51:53.420 IST [10215] LOG: connection authorized: user=postgres database=postgres
 ```
+
+### REPLICATION
+- Check streaming recovery status
+```sql
+-- Run this on hot standby server 
+
+select pg_is_wal_replay_paused();
+
+-- If the output is f then, streaming recovery is running, if t means not running.
+```
+- Check replication details on primary server
+
+```sql
+-- Run on this primary server for outgoing replication details
+select * from pg_stat_replication;
+```
+
+- Get received /replayed WAL records on standby(replication)
+```sql
+-- Run on standby database
+select pg_last_wal_receive_lsn(), pg_last_wal_replay_lsn(), pg_last_xact_replay_timestamp();
+select * from pg_stat_wal_receiver;
+```
+
+- How to stop /resume recovery in standy(replication)
+
+```sql
+-- To stop/pause recovery on replication server(standby)
+
+select pg_wal_replay_pause();
+select pg_is_wal_replay_paused();
+
+-- To Resume recovery on replication server(standby)
+
+select pg_wal_replay_resume();
+select pg_is_wal_replay_paused();
+
+```
+
+- Find lag in streaming replication
+
+```sql
+-- Find lag in bytes( run on standby)
+
+SELECT pg_wal_lsn_diff(sent_lsn, replay_lsn) from pg_stat_replication;
+
+--- Find lag in seconds( run on standby)
+
+SELECT CASE WHEN pg_last_wal_receive_lsn() =
+pg_last_wal_replay_lsn()
+THEN 0 ELSE
+EXTRACT (EPOCH FROM now() - pg_last_xact_replay_timestamp()) END AS lag_seconds;
+```
+
+- Manage replication slots
+
+```sql
+-- Check existing replication slot details
+
+SELECT redo_lsn, slot_name,restart_lsn, active,
+round((redo_lsn-restart_lsn) / 1024 / 1024 / 1024, 2) AS GB_lag
+FROM pg_control_checkpoint(), pg_replication_slots;
+
+-- Create replication slots
+SELECT pg_create_physical_replication_slot('slot_one');
+
+-- Drop unused replication slots
+SELECT pg_drop_replication_slot('slot_one');
+```
+
+- Find subscription details in logic replication
+
+```sql
+select * from pg_stat_subscription;
+```
+
+###  GENERIC
+
+- Find autocommit setting in postgres
+
+```sql
+-- Bydefault autocommit is set to on in postgres. You can check the setting .
+
+postgres# \echo :AUTOCOMMIT;
+ON;
+
+-- At session level you can change the autocommit setting :
+
+postgres# \set AUTOCOMMIT OFF
+```
+
+- Run a query repeatedly automatically
+
+```sql
+-- You can use watch command to run a particular query repeatedly until you cancel it.
+-- watch 3 , means for every 3 seconds, the previous query will be executed 
+
+select count(*) from test;
+
+postgres=# \watch 3
+Tue 19 Apr 2022 08:18:17 PM +03 (every 3s)
+
+count
+-------
+4226
+(1 row)
+
+Tue 19 Apr 2022 08:18:20 PM +03 (every 3s)
+
+count
+-------
+4226
+(1 row)
+```
+
+
