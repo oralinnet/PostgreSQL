@@ -826,4 +826,459 @@ count
 (1 row)
 ```
 
+### OBJECT MANAGEMENT
 
+- Create/drop table in postgres
+
+```sql
+-- Create a simple table
+Create table member_table ( mem_id integer, member_name varchar(100) , mobile integer not null);
+
+-- Create table with primary key
+Create table member_table ( mem_id integer primary key, member_name varchar(100) , mobile integer not null);
+
+-- Create table under particular tablespace
+Create table member_table ( mem_id integer primary key, member_name varchar(100) , mobile integer not null) tablespace pg_production_ts;
+
+-- Create table with unique constraint
+Create table member_table ( mem_id integer, member_name varchar(100) , mobile integer not null , constraint mem_id_cons unique(mem_id));
+
+-- Create temporary table:
+Create temporary table member_table ( mem_id integer primary key, member_name varchar(100) , mobile integer not null) tablespace pg_default;
+
+-- Drop table
+drop table member_table;
+```
+
+- Create/drop index commands in postgres
+
+```sql
+-- Simple create index:
+create index tab_idx2 on scott.customer(emp_name);
+
+-- Create index with tablespace:
+
+CREATE INDEX tab_idx2 on scott.customer(emp_name) TABLESPACE IND_TS;
+
+-- Create index without causing blocking:
+
+create index concurrently tab_idx2 on scott.customer(emp_name) TABLESPACE IND_TS;
+
+-- Create unique index:
+create unique index tab_idx2 on scott.customer(emp_name)
+
+-- Create functional index:
+create index fun_idx on scott.customer(lower(emp_name));
+
+-- Create multi column index:
+create index multi_idx on scott.customer(emp_name,emp_id);
+
+-- drop an index:
+
+drop index fun_idx;
+
+```
+
+- Find list of schemas in postgres
+
+```sql
+-- Below of any commands can be used to find the schema details:
+
+select schema_name,schema_owner from information_schema.schemata;
+
+select nspname as schema_name , pg_get_userbyid(nspowner) as schema_owner from pg_catalog.pg_namespace;
+
+postgres=# \dn+
+
+```
+
+- list of objects presents in a schema
+
+```sql
+--Below is for finding objects under schema scott: Replace your schema_name with scott
+
+SELECT n.nspname as "Schema",
+c.relname as "Name",
+CASE c.relkind WHEN 'r' THEN 'table' WHEN 'v' THEN 'view' WHEN 'm' THEN 'materialized view' WHEN 'i' THEN 'index' WHEN 'S' THEN 'sequence' WHEN 's' THEN 'special' WHEN 'f' THEN 'foreign table' WHEN 'p' THEN 'partitioned table' WHEN 'I' THEN 'partitioned index' END as "Type",
+pg_catalog.pg_get_userbyid(c.relowner) as "Owner"
+FROM pg_catalog.pg_class c
+LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+where n.nspname ='scott'
+AND pg_catalog.pg_table_is_visible(c.oid)
+ORDER BY 1,2;
+
+-- NOTE: Make sure that, the schema_name for which you are looking for objects, is present in the search_path of that user. Otherwise it wont return any rows
+
+show search_path;
+
+```
+
+- Find schema wise size in postgres db
+
+```sql
+-- Below queries can be used to get schema wise size in postgres db
+
+select schemaname,pg_size_pretty(sum(pg_relation_size(quote_ident(schemaname) || '.' || quote_ident(tablename)))::bigint) as schema_size FROM pg_tables group by schemaname;
+
+SELECT schemaname,
+pg_size_pretty(sum(table_size)::bigint) as schema_size,
+(sum(table_size) / pg_database_size(current_database())) * 100 as percentage_of_total_db
+FROM (
+SELECT pg_catalog.pg_namespace.nspname as schemaname,
+pg_relation_size(pg_catalog.pg_class.oid) as table_size
+FROM pg_catalog.pg_class
+JOIN pg_catalog.pg_namespace ON relnamespace = pg_catalog.pg_namespace.oid
+) t
+GROUP BY schemaname
+ORDER BY schemaname;
+
+```
+
+- Find top 10 big tables in postgres
+
+```sql
+-- Top 10 big tables in postgres
+
+select schemaname as schema_owner,
+relname as table_name,
+pg_size_pretty(pg_total_relation_size(relid)) as total_size,
+pg_size_pretty(pg_relation_size(relid)) as used_size,
+pg_size_pretty(pg_total_relation_size(relid) - pg_relation_size(relid))
+as free_space
+from pg_catalog.pg_statio_user_tables
+order by pg_total_relation_size(relid) desc,
+pg_relation_size(relid) desc
+limit 10;
+
+(or)
+
+SELECT
+nspname as schema_name,relname as table_name,pg_size_pretty(pg_relation_size(c.oid)) as "table_size"
+from pg_class c left join pg_namespace n on ( n.oid=c.relnamespace)
+where nspname not in ('pg_catalog','information_schema')
+order by pg_relation_size(c.oid) desc limit 10;
+
+ 
+```
+
+- Find tables and its index sizes
+
+```sql
+-- Find table sizes and its respective index sizes
+
+SELECT
+table_name,
+pg_size_pretty(table_size) AS table_size,
+pg_size_pretty(indexes_size) AS indexes_size,
+pg_size_pretty(total_size) AS total_size
+FROM (
+SELECT
+table_name,
+pg_table_size(table_name) AS table_size,
+pg_indexes_size(table_name) AS indexes_size,
+pg_total_relation_size(table_name) AS total_size
+FROM (
+SELECT ('"' || table_schema || '"."' || table_name || '"') AS table_name
+FROM information_schema.tables
+) AS all_tables
+ORDER BY total_size DESC
+) AS pretty_sizes limit 10;
+```
+
+- List down index details in postgres
+
+```sql
+--- It wil find the indexes present on a table 'test'
+
+select * from pg_indexes where tablename='test';
+
+-- All indexes present in database:
+
+select * from pg_indexes
+
+-- It will show all index details including size:
+
+postgres=# \di+
+
+-- Find indexes with respective column name for table( here table name is test)
+
+-- REFERENCE - https://stackoverflow.com/questions/2204058/list-columns-with-indexes-in-postgresql
+
+select
+t.relname as table_name,
+i.relname as index_name,
+array_to_string(array_agg(a.attname), ', ') as column_names
+from
+pg_class t,
+pg_class i,
+pg_index ix,
+pg_attribute a
+where
+t.oid = ix.indrelid
+and i.oid = ix.indexrelid
+and a.attrelid = t.oid
+and a.attnum = ANY(ix.indkey)
+and t.relkind = 'r'
+and t.relname ='test'
+group by
+t.relname,
+i.relname
+order by
+t.relname,
+i.relname;
+```
+
+- Find the size of a column 
+
+```sql
+-- Describe the table:
+
+postgres=# \d test
+
+-- Find the column size ( for sourcefile and sourceline)
+
+select pg_size_pretty(sum(pg_column_size(sourcefile))) as total_size from test;
+
+select pg_size_pretty(sum(pg_column_size(sourceline))) as total_size from test;
+
+```
+
+- Find respective physical file of a table/index
+
+```sql
+-- For getting the physical location of a table:
+select pg_relation_filepath('test');
+
+-- For getting the physical location of an index:
+
+select pg_relation_filepath('test_idx');
+
+```
+
+- Find list of views present
+
+```sql
+select * from pg_views where schemaname not in ('pg_catalog','information_schema','sys');
+
+postgres#\dv
+
+```
+
+- Find list of views present
+
+```sql
+select * from pg_views where schemaname not in ('pg_catalog','information_schema','sys');
+
+postgres#\dv
+
+```
+
+- Manage sequences in postgres
+
+```sql
+-- Find the sequence details:
+
+select * from pg_sequences;
+
+(or)
+
+\ds+
+
+-- Create sequences:
+
+CREATE SEQUENCE class_seq INCREMENT 1 MINVALUE 1 MAXVALUE 1000 START 1;
+
+-- Create sequence in descending:
+
+CREATE SEQUENCE class_seq INCREMENT -1 MINVALUE 1 MAXVALUE 1000 START 1000;
+
+-- Alter sequence to change maxvalue:
+alter sequence class_seq maxvalue 500;
+
+-- Reset a sequence using alter command:
+alter sequence class_seq restart with 1;
+
+-- Find next_val and currval of a sequence:
+
+select nextval('class_seq');
+select currval('class_seq');
+
+```
+
+- Create Partial index in postgres
+
+```sql
+-- Partial index, means index will be created on a specific subset of data of a table.
+
+create index part_emp_idx on orders(tax) where tax > 400;
+
+edbstore=> \d part_emp_idx
+Index "edbuser.part_emp_idx"
+Column  | Type          | Key? | Definition
+--------+---------------+------+------------
+tax     | numeric(12,2) | yes  | tax
+btree, for table "edbuser.orders", predicate (tax > 400::numeric)
+```
+
+-- Find foreign key details in postgres
+
+```sql
+SELECT
+o.conname AS constraint_name,
+(SELECT nspname FROM pg_namespace WHERE oid=m.relnamespace) AS source_schema,
+m.relname AS source_table,
+(SELECT a.attname FROM pg_attribute a WHERE a.attrelid = m.oid AND a.attnum = o.conkey[1] AND a.attisdropped = false) AS source_column,
+(SELECT nspname FROM pg_namespace WHERE oid=f.relnamespace) AS target_schema,
+f.relname AS target_table,
+(SELECT a.attname FROM pg_attribute a WHERE a.attrelid = f.oid AND a.attnum = o.confkey[1] AND a.attisdropped = false) AS target_column
+FROM
+pg_constraint o LEFT JOIN pg_class f ON f.oid = o.confrelid LEFT JOIN pg_class m ON m.oid = o.conrelid
+WHERE
+o.contype = 'f' AND o.conrelid IN (SELECT oid FROM pg_class c WHERE c.relkind = 'r');
+
+-- REFERENCE - https://stackoverflow.com/questions/1152260/postgres-sql-to-list-table-foreign-keys
+```
+
+- Find specific table/index size
+
+```sql
+postgres=# \d test
+Table "public.test"
+
+-- Find the table_size ( excluding the index_size)
+
+SELECT pg_size_pretty (pg_relation_size('test'));
+
+-- Find the total_index size of the table
+
+SELECT pg_size_pretty ( pg_indexes_size('test'));
+
+-- Find particular index size:
+
+select pg_size_pretty(pg_total_relation_size('test_idx'));
+
+select pg_size_pretty(pg_total_relation_size('test_idx2'));
+
+-- Another method:
+
+postgres=# \di+ "test_idx"
+
+```
+
+- Find list of partitioned table details
+
+```sql
+-- List down all partitioned tables present in db
+
+SELECT
+nmsp_parent.nspname AS parent_schema,
+parent.relname AS parent,
+nmsp_child.nspname AS child_schema,
+child.relname AS child
+FROM pg_inherits
+JOIN pg_class parent ON pg_inherits.inhparent = parent.oid
+JOIN pg_class child ON pg_inherits.inhrelid = child.oid
+JOIN pg_namespace nmsp_parent ON nmsp_parent.oid = parent.relnamespace
+JOIN pg_namespace nmsp_child ON nmsp_child.oid = child.relnamespace
+
+-- List down all partitions of a single table:
+
+SELECT
+nmsp_parent.nspname AS parent_schema,
+parent.relname AS parent,
+nmsp_child.nspname AS child_schema,
+child.relname AS child
+FROM pg_inherits
+JOIN pg_class parent ON pg_inherits.inhparent = parent.oid
+JOIN pg_class child ON pg_inherits.inhrelid = child.oid
+JOIN pg_namespace nmsp_parent ON nmsp_parent.oid = parent.relnamespace
+JOIN pg_namespace nmsp_child ON nmsp_child.oid = child.relnamespace
+WHERE parent.relname='parent_table_name';
+
+-- Ref link - > https://dba.stackexchange.com/questions/40441/get-all-partition-names-for-a-table
+
+```
+
+
+### USER MANAGEMENT
+
+- List users present in postgres
+
+```sql
+--- List users present in postgres:
+
+select usename,usesuper,valuntil from pg_user;
+
+select usename,usesuper,valuntil from pg_shadow;
+
+select usename,usesuper,valuntil from pg_shadow;
+
+postgres=# \du
+
+-- NOTE - > \du command output includes both user and roles(custom created roles only).
+
+-- postgres users are bydefault role, but roles are not bydefault user.
+```
+
+- List roles present in postgres
+
+```sql
+-- List roles :
+
+select rolname,rolcanlogin,rolvaliduntil from pg_roles;
+
+ 
+-- rolcanlogin - > If true mean they are role as well as user
+--                 If false mean they are only role( they cannot login)
+
+-- NOTE - > In postgres users are bydefault role, but roles are not bydefault user. i.e
+
+-- Bydefault user come with login privilege, where as roles don’t come with login privilege.
+
+```
+
+- create/drop user in postgres
+
+```sql
+-- CREATE USER:
+create user TEST_DBACLASS with password 'test123';
+
+-- CREATE USER WITH VALID UNTIL:
+
+create user TEST_dbuser1 with password 'test123' valid until '2020-08-08';
+
+-- CREATE USER WITH SUPER USER PRIVILEGE
+
+create user test_dbuser3 with password 'test123' CREATEDB SUPERUSER;
+
+
+-- VIEW USERS:
+
+select usename,valuntil,usecreatedb from pg_shadow;
+
+select usename,usesuper,valuntil from pg_user;
+
+dbaclass=# \du+
+
+drop user DB_user1;
+```
+
+- Create/drop role in postgres
+
+```sql
+ -- Create role :
+
+create role dev_admin;
+
+create role dev_admin with valid until '10-oct-2020';
+
+-- role with createdb and superuser privilege and login keyword mean it can login to db like a normal user
+
+create role dev_admin with createdb createrole login ;
+
+-- DROP ROLE:
+
+drop role dev_admin;
+
+select rolname,rolcanlogin,rolvaliduntil from pg_roles;
+```
