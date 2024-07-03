@@ -1282,3 +1282,391 @@ drop role dev_admin;
 
 select rolname,rolcanlogin,rolvaliduntil from pg_roles;
 ```
+
+- Alter an user in postgres
+
+```sql
+-- Rename a user:
+
+alter user dbatest rename to dbaprod;
+-- NOTICE: MD5 password cleared because of role rename
+
+postgres=# \du
+
+-- << NOTE - AFTER renaming the user, you need to reset the password to same old one.
+
+-- Change the password a user:
+
+alter user dbaprod password 'test';
+
+--- Increase the validity of the user:
+
+alter user dbaprod valid until 'Feb 10 2021';
+```
+
+- Convert a user to superuser 
+
+```sql
+-- providing superuser role will make an user superuser.
+
+select usename,usesuper from pg_user where usename='dbatest';
+
+alter user dbatest with superuser;
+
+-- How to revoke superuser:
+
+alter user dbatest with nosuperuser;
+select usename,usesuper from pg_user where usename='dbatest';
+
+```
+
+- Set password to original one without knowing
+
+```sql
+--- Lets say you forgot the password of the user and u want to set the same password to that user in same or different db 
+
+-- 1. Set a password for the user dbaprod
+alter user dbaprod password 'old';
+
+-- 2.Note down the encrypted password
+SELECT rolname, rolpassword FROM pg_catalog.pg_authid where rolname='dbaprod';
+
+rolname | rolpassword
+---------+-------------------------------------
+dbaprod | md5bbb103edd695a83d45db75755e459a78 -- > NOTE DOWN THIS ONE
+(1 row)
+
+-- 3. Change the password and check the encrypted password
+
+alter user dbaprod password 'new';
+
+SELECT rolname, rolpassword FROM pg_catalog.pg_authid where rolname='dbaprod';
+
+rolname | rolpassword
+---------+-------------------------------------
+dbaprod | md5041382740aeba232404af81454f48d7f ( it has been changed)
+
+-- 4.Now update this rolpassword with the value we got at step 2
+
+update pg_catalog.pg_authid set rolpassword = 'md5bbb103edd695a83d45db75755e459a78' where rolname='dbaprod';
+
+-- Now try to connect to the database using the first password 'old'
+
+postgres$ PGPASSWORD=old ./psql -d postgres -U dbaprod
+Password:
+psql (12.3)
+Type "help" for help.
+```
+
+- GRANT privilege commands
+
+```sql
+-- Examples on GRANT command
+
+GRANT CONNECT ON DATABASE PRIMDB to DBAUSER1;
+
+GRANT USAGE ON SCHEMA CRM to DBAUSER1;
+
+GRANT INSERT,UPDATE,DELETE ON TABLE CRM.EMPTAB TO DBAUSER1;
+
+GRANT ALL ON TABLE  CRM.EMPTAB TO DBAUSER1;
+
+GRANT CREATE ALL ON DATABASE CRM to DBAUSER2;
+
+GRANT CREATE ON TABLESPACE INV_TS to DBAUSER2;
+
+GRANT ALL ON TABLESPACE INV_TS TO DBAUSER2;
+
+GRANT CREATE ON TABLESPACE INV_TS to DBAUSER2 with grant option:
+
+GRANT EXECUTE ON PROCEDURE PRIM_ID.TEST_PROC;
+
+GRANT EXECUTE ON FUNCTION PRIM_ID.TEST_FUNC;
+
+ 
+
+for more commands: use the help command
+
+#\h GRANT
+```
+
+- REVOKE privilege commands
+
+```sql
+-- Examples on REVOKE command
+
+REVOKE CONNECT ON DATABASE PRIMDB FROM DBAUSER1;
+
+REVOKE USAGE ON SCHEMA CRM FROM DBAUSER1;
+
+REVOKE INSERT,UPDATE,DELETE ON TABLE CRM.EMPTAB FROM DBAUSER1;
+
+REVOKE ALL ON TABLE CRM.EMPTAB FROM DBAUSER1;
+
+REVOKE CREATE ALL ON DATABASE CRM FROM DBAUSER2;
+
+REVOKE CREATE ON TABLESPACE INV_TS FROM DBAUSER2;
+
+REVOKE ALL ON TABLESPACE INV_TS FROM DBAUSER2;
+
+REVOKE CREATE ON TABLESPACE INV_TS FROM DBAUSER2 ;
+
+REVOKE EXECUTE ON PROCEDURE PRIM_ID.TEST_PROC FROM DBAUSER2;
+
+REVOKE EXECUTE ON FUNCTION PRIM_ID.TEST_FUNC FROM DBAUSER2;
+
+for more commands: use the help command
+
+#\h REVOKE
+```
+
+- Create user profile - EDB Postgres
+
+```sql
+--- in edb postgres advanced server we can create user profile
+---- similar to that of oracle.
+
+-- Create profile:
+
+create profile REPORTING_PROFILE limit FAILED_LOGIN_ATTEMPTS 3 PASSWORD_LIFE_TIME 90;
+
+--- Alter profile:
+
+alter profile REPORTING_PROFILE limit FAILED_LOGIN_ATTEMPTS 1;
+
+-- view profile details:
+
+select * from dba_profiles;
+```
+
+- Create/Drop schema in postgres
+
+```sql
+-- A schema is a named collection of tables. A schema can also contain views, indexes, sequences, data types, operators, and functions.
+--- Create schema:
+create schema dba_schema;
+
+-- Create schema with authorize particular user:
+
+create schema dba_schema authorization raj2;
+
+-- Drop schema
+
+drop schema dba_schema;
+
+-- List down schemas present
+
+postgres=# \dn+
+```
+
+- Find search_path setting of users
+
+```sql
+-- Find search_path of users in a particular database ( replace your db_name(EDB))
+
+SELECT r.rolname, d.datname, drs.setconfig
+FROM pg_db_role_setting drs
+LEFT JOIN pg_roles r ON r.oid = drs.setrole
+LEFT JOIN pg_database d ON d.oid = drs.setdatabase
+WHERE d.datname = 'EDB';
+
+-- Find search_path of users in postgres db cluster( all database)
+
+SELECT r.rolname, d.datname, drs.setconfig
+FROM pg_db_role_setting drs
+LEFT JOIN pg_roles r ON r.oid = drs.setrole
+LEFT JOIN pg_database d ON d.oid = drs.setdatabase;
+```
+
+- Set search_path of a user in postgres
+
+```sql
+-- set search_path for a user in particular db:
+
+alter user prod_user in database "EDB" set search_path="$user", public, prim_db;
+
+-- set search_path for a user in postgres cluster( all dbs)
+
+alter user prod_user set search_path="$user", public, prim_db;
+```
+
+- Find privileges granted to a user postgres
+
+```sql
+-- List down table level privileges of user
+SELECT table_catalog, table_schema, table_name, privilege_type
+FROM information_schema.table_privileges
+WHERE grantee = 'USER_NAME';
+
+-- List down usage privileges of a user:
+
+select * from usage_privileges where grantee='USER_NAME';
+```
+
+- Find the roles granted to user/role
+
+```sql
+SELECT
+r.rolname,
+ARRAY(SELECT b.rolname
+FROM pg_catalog.pg_auth_members m
+JOIN pg_catalog.pg_roles b ON (m.roleid = b.oid)
+WHERE m.member = r.oid) as memberof
+FROM pg_catalog.pg_roles r
+ORDER BY 1;
+```
+
+- Find how much bloating a table has
+
+```sql
+-- Create the pgstattuple extension:
+
+create extension pgstattuple;
+
+-- bloating percentage of the table "test":
+
+SELECT pg_size_pretty(pg_relation_size('test')) as table_size,(pgstattuple('test')).dead_tuple_percent;
+
+-- bloating percentage of index "test_x_idx":
+
+select pg_relation_size('test_x_idx') as index_size, 100-(pgstatindex('test_x_idx')).avg_leaf_density as bloat_ratio;
+
+```
+
+### BACKUP & RECOVERY
+
+- export table data to file using COPY
+
+```sql
+-- export specific column data to text file:
+
+copy EMPLOYEE( EMP_NAME,EMP_ID) to '/tmp/emp.txt';
+
+-- export complete table data to text file:
+
+copy EMPLOYEE to '/tmp/emp.txt';
+
+-- export table data to csv file:
+
+copy EMPLOYEE to '/tmp/emp.csv' with csv headers;
+
+-- export specific query output to csv file:
+
+copy ( select ename,depname from emp where depname='HR') to '/tmp/emp.csv' with csv headers;
+```
+
+### NETWORK
+
+- Find foreign server details
+
+```sql
+postgres=# \des+
+select srvname,srvowner,srvoptions,fdwname,srvversion,srvtype from pg_foreign_server join pg_foreign_data_wrapper b on b.oid=srvfdw;
+```
+
+- Find list of foreign tables
+
+```sql
+postgres=# \det+
+
+SELECT n.nspname AS "Schema",
+c.relname AS "Table",
+s.srvname AS "Server",
+CASE WHEN ftoptions IS NULL THEN '' ELSE '(' || pg_catalog.array_to_string(ARRAY(SELECT pg_catalog.quote_ident(option_name) || ' ' || pg_catalog.quote_literal(option_value) FROM pg_catalog.pg_options_to_table(ftoptions)), ', ') || ')' END AS "FDW options",
+d.description AS "Description"
+FROM pg_catalog.pg_foreign_table ft
+INNER JOIN pg_catalog.pg_class c ON c.oid = ft.ftrelid
+INNER JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+INNER JOIN pg_catalog.pg_foreign_server s ON s.oid = ft.ftserver
+LEFT JOIN pg_catalog.pg_description d
+ON d.classoid = c.tableoid AND d.objoid = c.oid AND d.objsubid = 0
+WHERE pg_catalog.pg_table_is_visible(c.oid)
+ORDER BY 1, 2;
+
+```
+
+- List foreign data wrapper
+
+```sql
+postgres=# \dew
+```
+
+- Find user mapping for FDW
+
+```sql
+postgres=# \deu+
+```
+
+- Create database link between postgres dbs
+
+```sql
+-- 1. Create extension:
+
+create extension dblink;
+
+-- 2. Create foreign server:( use the target postgres details.
+
+CREATE SERVER oracle_dblink FOREIGN DATA WRAPPER dblink_fdw OPTIONS ( host '10.21.120.131' ,dbname 'postgres' , port '5444');
+
+-- 3. Create user mapping details.
+
+CREATE USER MAPPING FOR enterprisedb SERVER oracle_dblink OPTIONS ( user 'dba_raj' ,password 'dba_raj');
+
+-- 4. Test the database link:
+
+SELECT dblink_connect('my_new_conn', 'oracle_dblink');
+
+dblink_connect
+----------------
+OK
+(1 row)
+
+-- 5. Fetch data using db_link:
+
+select * from dblink('oracle_dblink','select object_name from test') as test_object(object_name varchar );
+
+object_name
+---------------------------------------------------
+PG_AGGREGATE_FNOID_INDEX
+PG_AM_NAME_INDEX
+PG_AM_OID_INDEX
+PG_AMOP_FAM_STRAT_INDEX
+```
+
+- Create/Modify foreign server
+
+```sql
+-- 1. Create foreign server:( use the target postgres details.
+
+CREATE SERVER oracle_dblink FOREIGN DATA WRAPPER dblink_fdw OPTIONS ( host '10.21.120.131' ,dbname 'postgres' , port '5444');
+
+-- 2. Add new parameter to existing foreign server:
+
+ALTER SERVER oracle_dblink options ( ADD port '5444');
+
+-- 3. Modify parameters in foreign server:
+
+ALTER SERVER oracle_dblink options ( SET port '5432');
+
+-- 4. Drop foreign server:
+
+DROP SERVER oracle_dblink CASCADE;
+```
+
+### PERFORMANCE 
+
+- Find foreign server details
+
+```sql
+postgres=# \des+
+List of foreign servers
+Name  | Owner | Foreign-data wrapper | Access privileges | Type | Version | FDW options | Description
+------+-------+----------------------+-------------------+------+---------+-------------+-------------
+(0 rows)
+
+postgres=# select srvname,srvowner,srvoptions,fdwname,srvversion,srvtype from pg_foreign_server join pg_foreign_data_wrapper b on b.oid=srvfdw;
+srvname  | srvowner | srvoptions | fdwname | srvversion | srvtype
+---------+----------+------------+---------+------------+---------
+(0 rows)
+```
+
