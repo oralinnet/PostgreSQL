@@ -1,76 +1,92 @@
-## PostgreSQL Parameters 
+# PostgreSQL Parameters
 
-### `listen_addresses` Parameter
+## `listen_addresses` Parameter
 
-In PostgreSQL, the `listen_addresses` parameter is used to specify the network interfaces on which the
-database server will listen for incoming connections. This parameter is defined in the postgresql.conf configuration file.
+The `listen_addresses` parameter specifies the network interfaces on which the database server will listen for incoming connections. This parameter is defined in the `postgresql.conf` configuration file.
 
-- **Default Value:** By default, PostgreSQL is configured to listen on all available network interfaces,
-and the listen_addresses parameter is commented out in the configuration file.
+### Default Value
+By default, PostgreSQL is configured to listen on all available network interfaces, and the `listen_addresses` parameter is commented out in the configuration file.
 
-- **Setting Values:** You can set the listen_addresses parameter to a specific IP address or a 
-comma-separated list of addresses to restrict PostgreSQL to listen only on those interfaces. If you want
-PostgreSQL to listen on all available interfaces, you can set it to '*'.
+### Setting Values
+You can set the `listen_addresses` parameter to a specific IP address or a comma-separated list of addresses to restrict PostgreSQL to listen only on those interfaces. If you want PostgreSQL to listen on all available interfaces, you can set it to '*'.
 
-```plaintext
+```conf
 listen_addresses = '192.168.1.100'
 listen_addresses = '*'
 ```
-Remember to `restart the PostgreSQL service` after making changes to the postgresql.conf 
-file for the modifications to take effect.
 
+> **Note:** Remember to restart the PostgreSQL service after making changes to the `postgresql.conf` file for the modifications to take effect.
 
-### `password_encryption` Parameter
+## `password_encryption` Parameter
 
-The `password_encryption` parameter in PostgreSQL is used to specify the algorithm used for encrypting passwords stored in the database. It is an essential configuration option for enhancing security.
+The `password_encryption` parameter specifies the algorithm used for encrypting passwords stored in the database. It is an essential configuration option for enhancing security.
 
-- **Default Value:** By default, PostgreSQL uses the MD5 algorithm to encrypt passwords.
+### Default Value
+By default, PostgreSQL uses the MD5 algorithm to encrypt passwords.
 
-- **Setting Values:** You can set the `password_encryption` parameter in the `postgresql.conf` configuration file. For example:
+### Setting Values
+You can set the `password_encryption` parameter in the `postgresql.conf` configuration file:
 
-```plaintext
-  password_encryption = 'scram-sha-256'
+```conf
+password_encryption = 'scram-sha-256'
 ```
 
-### `Port` Parameter
+## `Port` Parameter
 
-To specify which port PostgreSQL should use, you need to configure the PostgreSQL server settings. By default, PostgreSQL uses port 5432. However, you can change this port if needed. Here's how you can do it:
+The port parameter specifies which port PostgreSQL should use for incoming connections.
 
-- **Edit PostgreSQL Configuration File:**
-Open the PostgreSQL configuration file in a text editor. The location of this file may vary depending on your operating system. Common locations include /etc/postgresql/{version}/main/postgresql.conf on Linux or C:\Program Files\PostgreSQL\{version}\data\postgresql.conf on Windows.
+### Default Value
+By default, PostgreSQL uses port 5432.
 
-- **Locate the Port Configuration:**
-Look for the line that begins with port = in the configuration file. If it's commented out (with a # at the beginning), remove the # and change the port number if needed. For example:
+### Configuration Steps
 
-```sh
+1. **Edit PostgreSQL Configuration File:**
+   - Open the PostgreSQL configuration file in a text editor
+   - Common locations:
+     - Linux: `/etc/postgresql/{version}/main/postgresql.conf`
+     - Windows: `C:\Program Files\PostgreSQL\{version}\data\postgresql.conf`
+
+2. **Locate the Port Configuration:**
+   - Look for the line that begins with `port =` in the configuration file
+   - If it's commented out (with a # at the beginning), remove the # and change the port number if needed
+
+```conf
 port = 5432
 # Change the number to the desired port, such as:
 port = 5433
 ```
-- **Save and Close the Configuration File Restart PostgreSQL**
 
-### `huge_pages` Parameter 
+3. **Save and Restart:**
+   - Save the configuration file
+   - Restart PostgreSQL for changes to take effect
 
-Huge pages, also known as large pages, are a feature in PostgreSQL that can be configured to improve performance by reducing the overhead of managing page tables. This is achieved by using larger page sizes in the system's memory management. Enabling huge pages can be beneficial for databases that handle large amounts of data and have significant memory requirements. Here's how you can configure huge pages in PostgreSQL:
+## `huge_pages` Parameter
 
-- **Configure the Operating System:** 
-Enable huge pages at the operating system level. The steps to do this depend on your operating system. On Linux, you typically need to modify the kernel parameters. This might involve configuring the vm.nr_hugepages parameter in the /etc/sysctl.conf file or using the sysctl command. For example:
+Huge pages (also known as large pages) are a feature in PostgreSQL that can improve performance by reducing the overhead of managing page tables. This is achieved by using larger page sizes in the system's memory management.
 
-```sh
+### Configuration Steps
+
+1. **Configure the Operating System:**
+   - Enable huge pages at the operating system level
+   - On Linux, modify the kernel parameters in `/etc/sysctl.conf` or use the `sysctl` command:
+
+```bash
 echo "vm.nr_hugepages = 2048" >> /etc/sysctl.conf
 sysctl -p
-# This example sets the number of huge pages to 2048. 
-# Adjust this value based on your system's requirements
 ```
-- **Configure PostgreSQL:**
-In the PostgreSQL configuration file (postgresql.conf), specify the huge_pages parameter. This parameter is a boolean that enables or disables the use of huge pages. Set it to on to enable huge pages:
 
-```sh
+> **Note:** The example sets the number of huge pages to 2048. Adjust this value based on your system's requirements.
+
+2. **Configure PostgreSQL:**
+   - In the `postgresql.conf` file, set the `huge_pages` parameter:
+
+```conf
 huge_pages = on
 
-# Additionally, you can set the huge_page_size parameter to specify the size of the huge pages. 
-# The default is typically 2MB. For example
+# Optionally set the huge page size (default is typically 2MB)
 huge_page_size = 2MB
 ```
-- **Save the changes to the configuration file and Restart PostgreSQL**
 
+3. **Save and Restart:**
+   - Save the configuration file
+   - Restart PostgreSQL for changes to take effect
