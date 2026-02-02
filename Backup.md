@@ -67,7 +67,7 @@ chmod 700 /pgdata/ts_app
 
 ### Create tablespace
 CREATE TABLESPACE ts_app
-LOCATION 'D:/pgdata/ts_app';
+LOCATION '/pgdata/ts_app';
 
 ### Grant Table space permission 
 GRANT CREATE ON TABLESPACE ts_app TO app_user;
