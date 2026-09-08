@@ -5,12 +5,14 @@ PostgreSQL is a powerful, open-source object-relational database system that has
 ## Repository Structure
 
 - [Introduction](/Introduction) - Basic concepts and getting started
+- [Install PostgreSQL](/Install_Pg_Sql.md) - Install PostgreSQL in RHEL 8
 - [SQL](/SQL) - SQL commands and examples
-- [DB_script.md](/DB_script.md) - Database scripts and utilities
-- [Pg_Parameters.md](/Pg_Parameters.md) - PostgreSQL configuration parameters
-- [PostgreSql_OS_User_change.md](/PostgreSql_OS_User_change.md) - OS user management
-- [fail2ban.md](/fail2ban.md) - Security and fail2ban setup
-- [run_psql_other_user.md](/run_psql_other_user.md) - Running psql as different users
+- [DB script](/DB_script.md) - Database scripts and utilities
+- [Pg Parameters](/Pg_Parameters.md) - PostgreSQL configuration parameters
+- [PostgreSql OS User_change](/PostgreSql_OS_User_change.md) - OS user management
+- [fail2ban Configure](/fail2ban.md) - Security and fail2ban setup
+- [Run SQL command from another OS user](/run_psql_other_user.md) - Running psql as different users
+- [PostgreSQL DBA Cheat Sheet](/postgresql-dba-cheat-sheet.md) - Essential Functions & Commands
 
 ## Features
 
