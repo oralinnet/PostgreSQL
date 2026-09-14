@@ -4,15 +4,16 @@ PostgreSQL is a powerful, open-source object-relational database system that has
 
 ## Repository Structure
 
-- [Introduction](/Introduction) - Basic concepts and getting started
-- [Install PostgreSQL](/Install_Pg_Sql.md) - Install PostgreSQL in RHEL 8
+- [Introduction](/Configuration/Introduction) - Basic concepts and getting started
+- [Install PostgreSQL](/Configuration//Install_Pg_Sql.md) - Install PostgreSQL in RHEL 8
+- [Replication PostgreSQL](/Configuration//Replica.md) - Configure Replica 
 - [SQL](/SQL) - SQL commands and examples
-- [DB script](/DB_script.md) - Database scripts and utilities
-- [Pg Parameters](/Pg_Parameters.md) - PostgreSQL configuration parameters
-- [PostgreSql OS User_change](/PostgreSql_OS_User_change.md) - OS user management
-- [fail2ban Configure](/fail2ban.md) - Security and fail2ban setup
-- [Run SQL command from another OS user](/run_psql_other_user.md) - Running psql as different users
-- [PostgreSQL DBA Cheat Sheet](/postgresql-dba-cheat-sheet.md) - Essential Functions & Commands
+- [DB script](/Configuration//DB_script.md) - Database scripts and utilities
+- [Pg Parameters](/Configuration//Pg_Parameters.md) - PostgreSQL configuration parameters
+- [PostgreSql OS User_change](/Configuration//PostgreSql_OS_User_change.md) - OS user management
+- [fail2ban Configure](/Configuration//fail2ban.md) - Security and fail2ban setup
+- [Run SQL command from another OS user](/Configuration//run_psql_other_user.md) - Running psql as different users
+- [PostgreSQL DBA Cheat Sheet](/Configuration//postgresql-dba-cheat-sheet.md) - Essential Functions & Commands
 
 ## Features
 
